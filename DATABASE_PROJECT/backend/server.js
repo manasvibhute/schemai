@@ -277,7 +277,7 @@ app.use((req, res, next) => {
 // Routes
 app.use("/api", schemaRoutes); 
 
-const PORT = 5000;
+const PORT = 5001;
 app.listen(PORT, () => {
   console.log(` Backend running on port ${PORT}`);
   console.log(` Test the route at: http://localhost:${PORT}/api/generate-schema`);
