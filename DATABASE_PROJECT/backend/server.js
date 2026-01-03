@@ -403,6 +403,66 @@
 
 
 
+// // 1. Load environment variables immediately
+// import 'dotenv/config'; 
+// import express from "express";
+// import cors from "cors";
+// import schemaRoutes from "./routes/schema.js";
+
+// const app = express();
+
+// // --- DEBUG: CHECK IF TOKEN IS LOADED ---
+// // This will appear in your Render "Logs" tab
+// if (!process.env.HF_API_TOKEN) {
+//   console.error("❌ CRITICAL ERROR: HF_API_TOKEN is missing from Environment Variables!");
+// } else {
+//   console.log("✅ HF_API_TOKEN detected successfully.");
+// }
+
+// // 2. Middleware
+// app.use(cors()); 
+// app.use(express.json());
+
+// // 3. Health Check & Root Route (Fixes "Cannot GET /")
+// // Visiting https://your-app.onrender.com/ will now show this message
+// app.get("/", (req, res) => {
+//   res.status(200).json({
+//     status: "success",
+//     message: "🚀 Schema AI Backend is Live!",
+//     timestamp: new Date().toISOString()
+//   });
+// });
+
+// // 4. Routes
+// app.use("/api", schemaRoutes); 
+
+// // 5. Global Error Handler (Prevents crashes)
+// app.use((err, req, res, next) => {
+//   console.error(err.stack);
+//   res.status(500).json({ error: "Internal Server Error" });
+// });
+
+// // 6. Start Server
+// // Render automatically provides process.env.PORT
+// const PORT = process.env.PORT || 10000;
+
+// app.listen(PORT, '0.0.0.0', () => {
+//   console.log(`-----------------------------------------------`);
+//   console.log(`🚀 Server listening on Port: ${PORT}`);
+//   console.log(`🌍 URL: https://schema-ai.onrender.com`);
+//   console.log(`-----------------------------------------------`);
+// });
+
+
+
+
+
+
+
+
+
+
+
 // 1. Load environment variables immediately
 import 'dotenv/config'; 
 import express from "express";
@@ -412,19 +472,24 @@ import schemaRoutes from "./routes/schema.js";
 const app = express();
 
 // --- DEBUG: CHECK IF TOKEN IS LOADED ---
-// This will appear in your Render "Logs" tab
 if (!process.env.HF_API_TOKEN) {
   console.error("❌ CRITICAL ERROR: HF_API_TOKEN is missing from Environment Variables!");
 } else {
   console.log("✅ HF_API_TOKEN detected successfully.");
 }
 
-// 2. Middleware
-app.use(cors()); 
+// 2. Middleware & CORS Configuration
+// Restricts access to your trusted frontend domain for security
+app.use(cors({
+  origin: 'https://schema-ai-frontend.onrender.com', // Your actual Frontend URL from Render
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type'],
+  optionsSuccessStatus: 200 // For legacy browser compatibility
+}));
+
 app.use(express.json());
 
-// 3. Health Check & Root Route (Fixes "Cannot GET /")
-// Visiting https://your-app.onrender.com/ will now show this message
+// 3. Health Check & Root Route
 app.get("/", (req, res) => {
   res.status(200).json({
     status: "success",
@@ -436,14 +501,18 @@ app.get("/", (req, res) => {
 // 4. Routes
 app.use("/api", schemaRoutes); 
 
-// 5. Global Error Handler (Prevents crashes)
+// 5. Global Error Handler
+// Catches issues and prevents the whole app from crashing
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: "Internal Server Error" });
+  console.error("Internal Error Log:", err.stack);
+  res.status(500).json({ 
+    error: "Internal Server Error",
+    message: process.env.NODE_ENV === 'development' ? err.message : "Something went wrong" 
+  });
 });
 
 // 6. Start Server
-// Render automatically provides process.env.PORT
+// Render automatically provides process.env.PORT; 10000 is a safe fallback
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, '0.0.0.0', () => {
