@@ -294,6 +294,115 @@
 
 
 
+// // 1. Load environment variables immediately
+// import 'dotenv/config'; 
+// import express from "express";
+// import cors from "cors";
+// import schemaRoutes from "./routes/schema.js";
+
+// const app = express();
+
+// // --- DEBUG: CHECK IF TOKEN IS LOADED ---
+// if (!process.env.HF_API_TOKEN) {
+//   console.error("❌ CRITICAL ERROR: HF_API_TOKEN is not found in process.env!");
+// } else {
+//   console.log("✅ HF_API_TOKEN detected successfully.");
+// }
+// // ---------------------------------------
+
+// // Middleware
+// app.use(cors()); 
+// app.use(express.json());
+
+// // Request Logger
+// app.use((req, res, next) => {
+//   console.log(`Incoming Request: ${req.method} ${req.url}`);
+//   next();
+// });
+
+// // Routes
+// app.use("/api", schemaRoutes); 
+
+// // --- UPDATED FOR DEPLOYMENT ---
+// // Use process.env.PORT provided by Render, or fallback to 5001 for local dev
+// const PORT = process.env.PORT || 5001;
+
+// app.get("/", (req, res) => {
+//   res.send("🚀 Schema AI Backend is running successfully!");
+// });
+
+// app.listen(PORT, '0.0.0.0', () => {
+//   console.log(`🚀 Backend running on port ${PORT}`);
+//   // This will show the actual assigned port in your Render logs
+//   if (process.env.PORT) {
+//     console.log(`🌍 Production URL is active.`);
+//   } else {
+//     console.log(`🏠 Local test at: http://localhost:${PORT}/api/generate-schema`);
+//   }
+// });
+
+
+
+
+
+
+
+
+
+// // 1. Load environment variables immediately
+// import 'dotenv/config'; 
+// import express from "express";
+// import cors from "cors";
+// import schemaRoutes from "./routes/schema.js";
+
+// const app = express();
+
+// // --- DEBUG: CHECK IF TOKEN IS LOADED ---
+// if (!process.env.HF_API_TOKEN) {
+//   console.error("❌ CRITICAL ERROR: HF_API_TOKEN is not found in process.env!");
+// } else {
+//   console.log("✅ HF_API_TOKEN detected successfully.");
+// }
+
+// // Middleware
+// app.use(cors()); 
+// app.use(express.json());
+
+// // Root Route (Fixes "Cannot GET /")
+// app.get("/", (req, res) => {
+//   res.status(200).send("🚀 Schema AI Backend is running successfully!");
+// });
+
+// // Routes
+// app.use("/api", schemaRoutes); 
+
+// // Request Logger (Move below root so it doesn't clutter logs)
+// app.use((req, res, next) => {
+//   console.log(`Incoming Request: ${req.method} ${req.url}`);
+//   next();
+// });
+
+// // --- UPDATED FOR DEPLOYMENT ---
+// const PORT = process.env.PORT || 10000;
+
+// app.listen(PORT, '0.0.0.0', () => {
+//   console.log(`🚀 Backend running on port ${PORT}`);
+//   if (process.env.PORT) {
+//     console.log(`🌍 Production URL is active.`);
+//   } else {
+//     console.log(`🏠 Local test at: http://localhost:${PORT}`);
+//   }
+// });
+
+
+
+
+
+
+
+
+
+
 // 1. Load environment variables immediately
 import 'dotenv/config'; 
 import express from "express";
@@ -303,36 +412,43 @@ import schemaRoutes from "./routes/schema.js";
 const app = express();
 
 // --- DEBUG: CHECK IF TOKEN IS LOADED ---
+// This will appear in your Render "Logs" tab
 if (!process.env.HF_API_TOKEN) {
-  console.error("❌ CRITICAL ERROR: HF_API_TOKEN is not found in process.env!");
+  console.error("❌ CRITICAL ERROR: HF_API_TOKEN is missing from Environment Variables!");
 } else {
   console.log("✅ HF_API_TOKEN detected successfully.");
 }
-// ---------------------------------------
 
-// Middleware
+// 2. Middleware
 app.use(cors()); 
 app.use(express.json());
 
-// Request Logger
-app.use((req, res, next) => {
-  console.log(`Incoming Request: ${req.method} ${req.url}`);
-  next();
+// 3. Health Check & Root Route (Fixes "Cannot GET /")
+// Visiting https://your-app.onrender.com/ will now show this message
+app.get("/", (req, res) => {
+  res.status(200).json({
+    status: "success",
+    message: "🚀 Schema AI Backend is Live!",
+    timestamp: new Date().toISOString()
+  });
 });
 
-// Routes
+// 4. Routes
 app.use("/api", schemaRoutes); 
 
-// --- UPDATED FOR DEPLOYMENT ---
-// Use process.env.PORT provided by Render, or fallback to 5001 for local dev
-const PORT = process.env.PORT || 5001;
+// 5. Global Error Handler (Prevents crashes)
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: "Internal Server Error" });
+});
+
+// 6. Start Server
+// Render automatically provides process.env.PORT
+const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Backend running on port ${PORT}`);
-  // This will show the actual assigned port in your Render logs
-  if (process.env.PORT) {
-    console.log(`🌍 Production URL is active.`);
-  } else {
-    console.log(`🏠 Local test at: http://localhost:${PORT}/api/generate-schema`);
-  }
+  console.log(`-----------------------------------------------`);
+  console.log(`🚀 Server listening on Port: ${PORT}`);
+  console.log(`🌍 URL: https://schema-ai.onrender.com`);
+  console.log(`-----------------------------------------------`);
 });
