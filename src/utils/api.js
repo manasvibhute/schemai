@@ -1612,7 +1612,8 @@ const DIALECTS = {
   prisma: "prisma" 
 };
 
-const API_BASE_URL = "http://localhost:5000/api"; 
+// const API_BASE_URL = "http://localhost:5000/api"; 
+const API_BASE_URL = "https://schema-ai.onrender.com/api";
 
 function toSafeString(input) {
   if (typeof input === "string") return input.trim();
