@@ -246,6 +246,54 @@
 
 
 
+// // 1. Load environment variables immediately
+// import 'dotenv/config'; 
+// import express from "express";
+// import cors from "cors";
+// import schemaRoutes from "./routes/schema.js";
+
+// const app = express();
+
+// // --- DEBUG: CHECK IF TOKEN IS LOADED ---
+// // This will print to your terminal as soon as you save.
+// if (!process.env.HF_API_TOKEN) {
+//   console.error("❌ CRITICAL ERROR: HF_API_TOKEN is not found in process.env!");
+//   console.log("Check if your .env file is in the 'backend' folder and named exactly '.env'");
+// } else {
+//   console.log(" HF_API_TOKEN detected successfully.");
+// }
+// // ---------------------------------------
+
+// // Middleware
+// app.use(cors()); 
+// app.use(express.json());
+
+// // Request Logger
+// app.use((req, res, next) => {
+//   console.log(`Incoming Request: ${req.method} ${req.url}`);
+//   next();
+// });
+
+// // Routes
+// app.use("/api", schemaRoutes); 
+
+// const PORT = 5001;
+// app.listen(PORT, () => {
+//   console.log(` Backend running on port ${PORT}`);
+//   console.log(` Test the route at: http://localhost:${PORT}/api/generate-schema`);
+// }); 
+
+
+
+
+
+
+
+
+
+
+
+
 // 1. Load environment variables immediately
 import 'dotenv/config'; 
 import express from "express";
@@ -255,12 +303,10 @@ import schemaRoutes from "./routes/schema.js";
 const app = express();
 
 // --- DEBUG: CHECK IF TOKEN IS LOADED ---
-// This will print to your terminal as soon as you save.
 if (!process.env.HF_API_TOKEN) {
   console.error("❌ CRITICAL ERROR: HF_API_TOKEN is not found in process.env!");
-  console.log("Check if your .env file is in the 'backend' folder and named exactly '.env'");
 } else {
-  console.log(" HF_API_TOKEN detected successfully.");
+  console.log("✅ HF_API_TOKEN detected successfully.");
 }
 // ---------------------------------------
 
@@ -277,8 +323,16 @@ app.use((req, res, next) => {
 // Routes
 app.use("/api", schemaRoutes); 
 
-const PORT = 5001;
-app.listen(PORT, () => {
-  console.log(` Backend running on port ${PORT}`);
-  console.log(` Test the route at: http://localhost:${PORT}/api/generate-schema`);
-}); 
+// --- UPDATED FOR DEPLOYMENT ---
+// Use process.env.PORT provided by Render, or fallback to 5001 for local dev
+const PORT = process.env.PORT || 5001;
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Backend running on port ${PORT}`);
+  // This will show the actual assigned port in your Render logs
+  if (process.env.PORT) {
+    console.log(`🌍 Production URL is active.`);
+  } else {
+    console.log(`🏠 Local test at: http://localhost:${PORT}/api/generate-schema`);
+  }
+});
