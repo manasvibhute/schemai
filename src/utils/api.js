@@ -1605,6 +1605,182 @@
 
 
 
+// const DIALECTS = { 
+//   postgres: "postgres", 
+//   mysql: "mysql", 
+//   mongodb: "mongodb", 
+//   prisma: "prisma" 
+// };
+
+//  const API_BASE_URL = "http://localhost:5000/api"; 
+// //const API_BASE_URL = "https://schema-ai.onrender.com/api/generate-schema";
+
+// function toSafeString(input) {
+//   if (typeof input === "string") return input.trim();
+//   if (input == null) return "";
+//   return String(input).trim();
+// }
+
+// /**
+//  * Normalizes the schema to ensure consistent data structures 
+//  * for both the UI and code generators.
+//  */
+// export function normalizeSchema(schema) {
+//   const safe = schema && typeof schema === "object" ? schema : {};
+//   const tables = Array.isArray(safe.tables) ? safe.tables : [];
+//   const relations = Array.isArray(safe.relations) ? safe.relations : [];
+
+//   const normTables = tables.map((t) => ({
+//     name: toSafeString(t?.name),
+//     columns: Array.isArray(t?.columns)
+//       ? t.columns.map((c) => ({
+//           name: toSafeString(c?.name),
+//           type: toSafeString(c?.type) || "varchar(255)",
+//           pk: !!c?.pk,
+//           fk: !!c?.fk,
+//           unique: !!c?.unique,
+//           nullable: !!c?.nullable,
+//         }))
+//       : [],
+//   }));
+
+//   return {
+//     tables: normTables.filter((t) => t.name),
+//     relations: relations
+//       .map((r) => ({
+//         fromTable: toSafeString(r?.fromTable),
+//         fromColumn: toSafeString(r?.fromColumn),
+//         toTable: toSafeString(r?.toTable),
+//         toColumn: toSafeString(r?.toColumn),
+//         type: toSafeString(r?.type) || "many-to-one",
+//       }))
+//       .filter((r) => r.fromTable && r.toTable),
+//   };
+// }
+
+// // --- AI GENERATION ---
+// export async function generateSchemaFromPrompt(prompt) {
+//   try {
+//     const res = await fetch(`${API_BASE_URL}/generate-schema`, {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify({ prompt }),
+//     });
+
+//     if (!res.ok) {
+//       const errorData = await res.json().catch(() => ({}));
+//       throw new Error(errorData.error || `Server responded with ${res.status}`);
+//     }
+
+//     let data = await res.json();
+//     if (typeof data === 'string') {
+//       try {
+//         const jsonMatch = data.match(/\{[\s\S]*\}/);
+//         data = JSON.parse(jsonMatch ? jsonMatch[0] : data);
+//       } catch (e) {
+//         console.error("Parse error", e);
+//       }
+//     }
+//     return normalizeSchema(data);
+//   } catch (err) {
+//     throw err;
+//   }
+// }
+
+// // --- GENERATORS ---
+
+// function generatePrismaCode(schema) {
+//   let code = `datasource db {\n  provider = "postgresql"\n  url      = env("DATABASE_URL")\n}\n\ngenerator client {\n  provider = "prisma-client-js"\n}\n\n`;
+
+//   schema.tables.forEach(table => {
+//     code += `model ${table.name} {\n`;
+//     table.columns.forEach(col => {
+//       let type = "String";
+//       const t = col.type.toLowerCase();
+//       if (t.includes("int")) type = "Int";
+//       else if (t.includes("bool")) type = "Boolean";
+//       else if (t.includes("float") || t.includes("decimal")) type = "Float";
+//       else if (t.includes("time") || t.includes("date")) type = "DateTime";
+
+//       code += `  ${col.name} ${type}`;
+//       if (col.pk) code += " @id @default(uuid())";
+//       if (col.unique && !col.pk) code += " @unique";
+//       code += "\n";
+//     });
+//     code += `}\n\n`;
+//   });
+//   return code;
+// }
+
+// function generateMongoCode(schema) {
+//   let code = `import mongoose from 'mongoose';\n\n`;
+//   schema.tables.forEach(table => {
+//     code += `const ${table.name}Schema = new mongoose.Schema({\n`;
+//     table.columns.forEach(col => {
+//       if (col.pk && (col.name === 'id' || col.name === '_id')) return;
+//       let type = "String";
+//       const t = col.type.toLowerCase();
+//       if (t.includes("int") || t.includes("float") || t.includes("decimal")) type = "Number";
+//       else if (t.includes("bool")) type = "Boolean";
+//       else if (t.includes("date") || t.includes("time")) type = "Date";
+
+//       code += `  ${col.name}: { type: ${type}${col.unique ? ", unique: true" : ""}${!col.nullable ? ", required: true" : ""} },\n`;
+//     });
+//     code += `}, { timestamps: true });\n\nexport const ${table.name} = mongoose.models.${table.name} || mongoose.model('${table.name}', ${table.name}Schema);\n\n`;
+//   });
+//   return code;
+// }
+
+// function generateSQLCode(schema, dialect) {
+//   const lines = [];
+//   if (dialect === "postgres") lines.push("CREATE EXTENSION IF NOT EXISTS pgcrypto;");
+
+//   schema.tables.forEach((table) => {
+//     const colDefs = table.columns.map((col) => {
+//       let def = `  "${col.name}" ${col.type}`;
+//       if (col.pk) def += " PRIMARY KEY";
+//       if (col.unique && !col.pk) def += " UNIQUE";
+//       if (!col.nullable) def += " NOT NULL";
+//       return def;
+//     });
+//     lines.push(`CREATE TABLE IF NOT EXISTS "${table.name}" (\n${colDefs.join(",\n")}\n);`);
+//   });
+
+//   schema.relations.forEach((rel) => {
+//     lines.push(`ALTER TABLE "${rel.fromTable}" \n  ADD CONSTRAINT "fk_${rel.fromTable}_${rel.fromColumn}" \n  FOREIGN KEY ("${rel.fromColumn}") REFERENCES "${rel.toTable}" ("${rel.toColumn}");`);
+//   });
+
+//   return lines.join("\n\n");
+// }
+
+// /**
+//  * Main switch for code generation. 
+//  * This is called by Editor.jsx inside the useMemo hook.
+//  */
+// export function generateSQL(schemaInput, dialectInput = "postgres") {
+//   const schema = normalizeSchema(schemaInput);
+//   if (!schema.tables || schema.tables.length === 0) return "-- No tables to generate.";
+
+//   const dialect = dialectInput.toLowerCase();
+
+//   if (dialect === DIALECTS.prisma) return generatePrismaCode(schema);
+//   if (dialect === DIALECTS.mongodb) return generateMongoCode(schema);
+//   if (dialect === DIALECTS.mysql) return generateSQLCode(schema, "mysql");
+  
+//   return generateSQLCode(schema, "postgres");
+// }
+
+
+
+
+
+
+
+
+
+// ===============================
+// DIALECTS
+// ===============================
 const DIALECTS = { 
   postgres: "postgres", 
   mysql: "mysql", 
@@ -1612,19 +1788,26 @@ const DIALECTS = {
   prisma: "prisma" 
 };
 
-// const API_BASE_URL = "http://localhost:5000/api"; 
-const API_BASE_URL = "https://schema-ai.onrender.com/api";
+// ===============================
+// API CONFIG
+// ===============================
+// IMPORTANT:
+// - Use relative URL to avoid CORS
+// - Frontend → your backend → AI service
+const API_BASE_URL = "/api";
 
+// ===============================
+// UTILS
+// ===============================
 function toSafeString(input) {
   if (typeof input === "string") return input.trim();
   if (input == null) return "";
   return String(input).trim();
 }
 
-/**
- * Normalizes the schema to ensure consistent data structures 
- * for both the UI and code generators.
- */
+// ===============================
+// NORMALIZER
+// ===============================
 export function normalizeSchema(schema) {
   const safe = schema && typeof schema === "object" ? schema : {};
   const tables = Array.isArray(safe.tables) ? safe.tables : [];
@@ -1658,39 +1841,60 @@ export function normalizeSchema(schema) {
   };
 }
 
-// --- AI GENERATION ---
+// ===============================
+// AI GENERATION (FIXED)
+// ===============================
 export async function generateSchemaFromPrompt(prompt) {
   try {
     const res = await fetch(`${API_BASE_URL}/generate-schema`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify({ prompt }),
     });
 
     if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.error || `Server responded with ${res.status}`);
+      const text = await res.text();
+      console.error("AI API Error:", text);
+      throw new Error(`AI server error (${res.status})`);
     }
 
     let data = await res.json();
-    if (typeof data === 'string') {
+
+    // Handle AI responses that return text instead of JSON
+    if (typeof data === "string") {
       try {
         const jsonMatch = data.match(/\{[\s\S]*\}/);
         data = JSON.parse(jsonMatch ? jsonMatch[0] : data);
       } catch (e) {
-        console.error("Parse error", e);
+        console.error("AI response parse failed", e);
+        throw new Error("Invalid AI response format");
       }
     }
+
     return normalizeSchema(data);
+
   } catch (err) {
-    throw err;
+    console.error("generateSchemaFromPrompt failed:", err);
+    throw err; // Editor.jsx will trigger fallback
   }
 }
 
-// --- GENERATORS ---
-
+// ===============================
+// CODE GENERATORS
+// ===============================
 function generatePrismaCode(schema) {
-  let code = `datasource db {\n  provider = "postgresql"\n  url      = env("DATABASE_URL")\n}\n\ngenerator client {\n  provider = "prisma-client-js"\n}\n\n`;
+  let code = `datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+`;
 
   schema.tables.forEach(table => {
     code += `model ${table.name} {\n`;
@@ -1709,15 +1913,18 @@ function generatePrismaCode(schema) {
     });
     code += `}\n\n`;
   });
+
   return code;
 }
 
 function generateMongoCode(schema) {
   let code = `import mongoose from 'mongoose';\n\n`;
+
   schema.tables.forEach(table => {
     code += `const ${table.name}Schema = new mongoose.Schema({\n`;
     table.columns.forEach(col => {
-      if (col.pk && (col.name === 'id' || col.name === '_id')) return;
+      if (col.pk && (col.name === "id" || col.name === "_id")) return;
+
       let type = "String";
       const t = col.type.toLowerCase();
       if (t.includes("int") || t.includes("float") || t.includes("decimal")) type = "Number";
@@ -1726,14 +1933,19 @@ function generateMongoCode(schema) {
 
       code += `  ${col.name}: { type: ${type}${col.unique ? ", unique: true" : ""}${!col.nullable ? ", required: true" : ""} },\n`;
     });
-    code += `}, { timestamps: true });\n\nexport const ${table.name} = mongoose.models.${table.name} || mongoose.model('${table.name}', ${table.name}Schema);\n\n`;
+
+    code += `}, { timestamps: true });\n\n`;
+    code += `export const ${table.name} = mongoose.models.${table.name} || mongoose.model('${table.name}', ${table.name}Schema);\n\n`;
   });
+
   return code;
 }
 
 function generateSQLCode(schema, dialect) {
   const lines = [];
-  if (dialect === "postgres") lines.push("CREATE EXTENSION IF NOT EXISTS pgcrypto;");
+  if (dialect === "postgres") {
+    lines.push("CREATE EXTENSION IF NOT EXISTS pgcrypto;");
+  }
 
   schema.tables.forEach((table) => {
     const colDefs = table.columns.map((col) => {
@@ -1743,29 +1955,38 @@ function generateSQLCode(schema, dialect) {
       if (!col.nullable) def += " NOT NULL";
       return def;
     });
-    lines.push(`CREATE TABLE IF NOT EXISTS "${table.name}" (\n${colDefs.join(",\n")}\n);`);
+
+    lines.push(
+      `CREATE TABLE IF NOT EXISTS "${table.name}" (\n${colDefs.join(",\n")}\n);`
+    );
   });
 
   schema.relations.forEach((rel) => {
-    lines.push(`ALTER TABLE "${rel.fromTable}" \n  ADD CONSTRAINT "fk_${rel.fromTable}_${rel.fromColumn}" \n  FOREIGN KEY ("${rel.fromColumn}") REFERENCES "${rel.toTable}" ("${rel.toColumn}");`);
+    lines.push(
+      `ALTER TABLE "${rel.fromTable}"
+  ADD CONSTRAINT "fk_${rel.fromTable}_${rel.fromColumn}"
+  FOREIGN KEY ("${rel.fromColumn}")
+  REFERENCES "${rel.toTable}" ("${rel.toColumn}");`
+    );
   });
 
   return lines.join("\n\n");
 }
 
-/**
- * Main switch for code generation. 
- * This is called by Editor.jsx inside the useMemo hook.
- */
+// ===============================
+// MAIN EXPORT
+// ===============================
 export function generateSQL(schemaInput, dialectInput = "postgres") {
   const schema = normalizeSchema(schemaInput);
-  if (!schema.tables || schema.tables.length === 0) return "-- No tables to generate.";
+  if (!schema.tables || schema.tables.length === 0) {
+    return "-- No tables to generate.";
+  }
 
   const dialect = dialectInput.toLowerCase();
 
   if (dialect === DIALECTS.prisma) return generatePrismaCode(schema);
   if (dialect === DIALECTS.mongodb) return generateMongoCode(schema);
   if (dialect === DIALECTS.mysql) return generateSQLCode(schema, "mysql");
-  
+
   return generateSQLCode(schema, "postgres");
 }
