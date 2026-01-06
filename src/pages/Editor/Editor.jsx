@@ -2944,27 +2944,104 @@ export default function Editor() {
     setSchema(updatedSchema);
   }, []);
 
-  const onGenerate = async () => {
-    if (!prompt) return;
-    setLoading(true);
-    setError("");
+  // const onGenerate = async () => {
+  //   if (!prompt) return;
+  //   setLoading(true);
+  //   setError("");
     
-    try {
-      const result = await generateSchemaFromPrompt(prompt);
-      if (result && Array.isArray(result.tables)) {
-        setSchema(result);
-        console.log("✅ Professional Schema & Relations Loaded");
-      } else {
-        throw new Error("AI returned an incompatible data format.");
-      }
-    } catch (e) {
-      console.error("Generation Error:", e);
-      setError("AI generation failed. Using normalized fallback.");
-      setSchema(fallbackSchema);
-    } finally {
-      setLoading(false);
+  //   try {
+  //     const result = await generateSchemaFromPrompt(prompt);
+  //     if (result && Array.isArray(result.tables)) {
+  //       setSchema(result);
+  //       console.log("✅ Professional Schema & Relations Loaded");
+  //     } else {
+  //       throw new Error("AI returned an incompatible data format.");
+  //     }
+  //   } catch (e) {
+  //     console.error("Generation Error:", e);
+  //     setError("AI generation failed. Using normalized fallback.");
+  //     setSchema(fallbackSchema);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+//   const onGenerate = async () => {
+//   if (!prompt) return;
+//   setLoading(true);
+//   setError("");
+  
+//   // ADD THIS: Clear current view so you know a change is happening
+//   setSchema({ tables: [], relations: [] }); 
+
+//   try {
+//     const result = await generateSchemaFromPrompt(prompt);
+//     if (result && Array.isArray(result.tables)) {
+//       setSchema(result);
+//       console.log("✅ New Schema Loaded");
+//     } else {
+//       throw new Error("AI returned empty data.");
+//     }
+//   } catch (e) {
+//     console.error("Generation Error:", e);
+//     setError("AI generation failed. Using normalized fallback.");
+//     setSchema(fallbackSchema); // This is what is currently happening
+//   } finally {
+//     setLoading(false);
+//   }
+// };
+
+
+// const onGenerate = async () => {
+//   if (!prompt) return;
+//   setLoading(true);
+//   setError("");
+  
+//   try {
+//     const result = await generateSchemaFromPrompt(prompt);
+    
+//     if (result && Array.isArray(result.tables)) {
+//       // FORCE REFRESH: Spread the result into a new object
+//       setSchema({ ...result }); 
+//       console.log("✅ New Schema Loaded", result);
+//     } else {
+//       throw new Error("AI returned empty table list.");
+//     }
+//   } catch (e) {
+//     console.error("Generation Error:", e);
+//     setError("AI generation failed. Using fallback.");
+//     setSchema(fallbackSchema);
+//   } finally {
+//     setLoading(false);
+//   }
+// };
+
+   const onGenerate = async () => {
+  if (!prompt) return;
+  setLoading(true);
+  setError("");
+
+  // 1. CLEAR THE CURRENT STATE FIRST
+  // This removes the "Banking" diagram so the canvas is ready for new data
+  setSchema({ tables: [], relations: [] });
+
+  try {
+    const result = await generateSchemaFromPrompt(prompt);
+    
+    if (result && Array.isArray(result.tables) && result.tables.length > 0) {
+      // 2. SET THE NEW DETAILED SCHEMA
+      setSchema({ ...result }); 
+      console.log("✅ New Schema Loaded:", result);
+    } else {
+      throw new Error("AI generated an empty or insufficient schema.");
     }
-  };
+  } catch (e) {
+    console.error("Generation Error:", e);
+    setError("AI generation failed. Check backend logs.");
+    // Only go back to fallback if there is a total connection failure
+  } finally {
+    setLoading(false);
+  }
+};
 
   // --- 2. MULTI-CODE GENERATION ---
   // Re-runs whenever 'schema' or 'dialect' changes.

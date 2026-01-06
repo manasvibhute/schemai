@@ -1778,6 +1778,489 @@
 
 
 
+// // ===============================
+// // DIALECTS
+// // ===============================
+// const DIALECTS = { 
+//   postgres: "postgres", 
+//   mysql: "mysql", 
+//   mongodb: "mongodb", 
+//   prisma: "prisma" 
+// };
+
+// // ===============================
+// // API CONFIG
+// // ===============================
+// // IMPORTANT:
+// // - Use relative URL to avoid CORS
+// // - Frontend → your backend → AI service
+// const API_BASE_URL = "/api";
+
+// // ===============================
+// // UTILS
+// // ===============================
+// function toSafeString(input) {
+//   if (typeof input === "string") return input.trim();
+//   if (input == null) return "";
+//   return String(input).trim();
+// }
+
+// // ===============================
+// // NORMALIZER
+// // ===============================
+// export function normalizeSchema(schema) {
+//   const safe = schema && typeof schema === "object" ? schema : {};
+//   const tables = Array.isArray(safe.tables) ? safe.tables : [];
+//   const relations = Array.isArray(safe.relations) ? safe.relations : [];
+
+//   const normTables = tables.map((t) => ({
+//     name: toSafeString(t?.name),
+//     columns: Array.isArray(t?.columns)
+//       ? t.columns.map((c) => ({
+//           name: toSafeString(c?.name),
+//           type: toSafeString(c?.type) || "varchar(255)",
+//           pk: !!c?.pk,
+//           fk: !!c?.fk,
+//           unique: !!c?.unique,
+//           nullable: !!c?.nullable,
+//         }))
+//       : [],
+//   }));
+
+//   return {
+//     tables: normTables.filter((t) => t.name),
+//     relations: relations
+//       .map((r) => ({
+//         fromTable: toSafeString(r?.fromTable),
+//         fromColumn: toSafeString(r?.fromColumn),
+//         toTable: toSafeString(r?.toTable),
+//         toColumn: toSafeString(r?.toColumn),
+//         type: toSafeString(r?.type) || "many-to-one",
+//       }))
+//       .filter((r) => r.fromTable && r.toTable),
+//   };
+// }
+
+// // ===============================
+// // AI GENERATION (FIXED)
+// // ===============================
+// export async function generateSchemaFromPrompt(prompt) {
+//   try {
+//     const res = await fetch(`${API_BASE_URL}/generate-schema`, {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json"
+//       },
+//       body: JSON.stringify({ prompt }),
+//     });
+
+//     if (!res.ok) {
+//       const text = await res.text();
+//       console.error("AI API Error:", text);
+//       throw new Error(`AI server error (${res.status})`);
+//     }
+
+//     let data = await res.json();
+
+//     // Handle AI responses that return text instead of JSON
+//     if (typeof data === "string") {
+//       try {
+//         const jsonMatch = data.match(/\{[\s\S]*\}/);
+//         data = JSON.parse(jsonMatch ? jsonMatch[0] : data);
+//       } catch (e) {
+//         console.error("AI response parse failed", e);
+//         throw new Error("Invalid AI response format");
+//       }
+//     }
+
+//     return normalizeSchema(data);
+
+//   } catch (err) {
+//     console.error("generateSchemaFromPrompt failed:", err);
+//     throw err; // Editor.jsx will trigger fallback
+//   }
+// }
+
+// // ===============================
+// // CODE GENERATORS
+// // ===============================
+// function generatePrismaCode(schema) {
+//   let code = `datasource db {
+//   provider = "postgresql"
+//   url      = env("DATABASE_URL")
+// }
+
+// generator client {
+//   provider = "prisma-client-js"
+// }
+
+// `;
+
+//   schema.tables.forEach(table => {
+//     code += `model ${table.name} {\n`;
+//     table.columns.forEach(col => {
+//       let type = "String";
+//       const t = col.type.toLowerCase();
+//       if (t.includes("int")) type = "Int";
+//       else if (t.includes("bool")) type = "Boolean";
+//       else if (t.includes("float") || t.includes("decimal")) type = "Float";
+//       else if (t.includes("time") || t.includes("date")) type = "DateTime";
+
+//       code += `  ${col.name} ${type}`;
+//       if (col.pk) code += " @id @default(uuid())";
+//       if (col.unique && !col.pk) code += " @unique";
+//       code += "\n";
+//     });
+//     code += `}\n\n`;
+//   });
+
+//   return code;
+// }
+
+// function generateMongoCode(schema) {
+//   let code = `import mongoose from 'mongoose';\n\n`;
+
+//   schema.tables.forEach(table => {
+//     code += `const ${table.name}Schema = new mongoose.Schema({\n`;
+//     table.columns.forEach(col => {
+//       if (col.pk && (col.name === "id" || col.name === "_id")) return;
+
+//       let type = "String";
+//       const t = col.type.toLowerCase();
+//       if (t.includes("int") || t.includes("float") || t.includes("decimal")) type = "Number";
+//       else if (t.includes("bool")) type = "Boolean";
+//       else if (t.includes("date") || t.includes("time")) type = "Date";
+
+//       code += `  ${col.name}: { type: ${type}${col.unique ? ", unique: true" : ""}${!col.nullable ? ", required: true" : ""} },\n`;
+//     });
+
+//     code += `}, { timestamps: true });\n\n`;
+//     code += `export const ${table.name} = mongoose.models.${table.name} || mongoose.model('${table.name}', ${table.name}Schema);\n\n`;
+//   });
+
+//   return code;
+// }
+
+// function generateSQLCode(schema, dialect) {
+//   const lines = [];
+//   if (dialect === "postgres") {
+//     lines.push("CREATE EXTENSION IF NOT EXISTS pgcrypto;");
+//   }
+
+//   schema.tables.forEach((table) => {
+//     const colDefs = table.columns.map((col) => {
+//       let def = `  "${col.name}" ${col.type}`;
+//       if (col.pk) def += " PRIMARY KEY";
+//       if (col.unique && !col.pk) def += " UNIQUE";
+//       if (!col.nullable) def += " NOT NULL";
+//       return def;
+//     });
+
+//     lines.push(
+//       `CREATE TABLE IF NOT EXISTS "${table.name}" (\n${colDefs.join(",\n")}\n);`
+//     );
+//   });
+
+//   schema.relations.forEach((rel) => {
+//     lines.push(
+//       `ALTER TABLE "${rel.fromTable}"
+//   ADD CONSTRAINT "fk_${rel.fromTable}_${rel.fromColumn}"
+//   FOREIGN KEY ("${rel.fromColumn}")
+//   REFERENCES "${rel.toTable}" ("${rel.toColumn}");`
+//     );
+//   });
+
+//   return lines.join("\n\n");
+// }
+
+// // ===============================
+// // MAIN EXPORT
+// // ===============================
+// export function generateSQL(schemaInput, dialectInput = "postgres") {
+//   const schema = normalizeSchema(schemaInput);
+//   if (!schema.tables || schema.tables.length === 0) {
+//     return "-- No tables to generate.";
+//   }
+
+//   const dialect = dialectInput.toLowerCase();
+
+//   if (dialect === DIALECTS.prisma) return generatePrismaCode(schema);
+//   if (dialect === DIALECTS.mongodb) return generateMongoCode(schema);
+//   if (dialect === DIALECTS.mysql) return generateSQLCode(schema, "mysql");
+
+//   return generateSQLCode(schema, "postgres");
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+// // ===============================
+// // DIALECTS
+// // ===============================
+// const DIALECTS = { 
+//   postgres: "postgres", 
+//   mysql: "mysql", 
+//   mongodb: "mongodb", 
+//   prisma: "prisma" 
+// };
+
+// // ===============================
+// // API CONFIG
+// // ===============================
+// //const API_BASE_URL = "/api";
+// //const API_BASE_URL = "http://localhost:10000";
+// // src/utils/api.js
+
+// // Change the port from 5000 to 10000 to match your server output
+// const API_BASE_URL = "http://localhost:10000/api";
+
+// // ===============================
+// // UTILS
+// // ===============================
+// function toSafeString(input) {
+//   if (typeof input === "string") return input.trim();
+//   if (input == null) return "";
+//   return String(input).trim();
+// }
+
+// // ===============================
+// // NORMALIZER (FIXED)
+// // ===============================
+// export function normalizeSchema(schema) {
+//   const safe = schema && typeof schema === "object" ? schema : {};
+
+//   const tables = Array.isArray(safe.tables) ? safe.tables : [];
+//   const relations = Array.isArray(safe.relations) ? safe.relations : [];
+
+//   return {
+//     tables: tables.map((t) => ({
+//       name: toSafeString(t?.name),
+//       columns: Array.isArray(t?.columns)
+//         ? t.columns.map((c) => ({
+//             name: toSafeString(c?.name),
+//             type: toSafeString(c?.type) || "varchar(255)",
+//             pk: !!c?.pk,
+//             fk: !!c?.fk,
+//             unique: !!c?.unique,
+//             nullable: !!c?.nullable,
+//           }))
+//         : [],
+//     })).filter(t => t.name),
+
+//     relations: relations.map((r) => ({
+//       fromTable: toSafeString(r?.fromTable),
+//       fromColumn: toSafeString(r?.fromColumn),
+//       toTable: toSafeString(r?.toTable),
+//       toColumn: toSafeString(r?.toColumn),
+//       type: toSafeString(r?.type) || "many-to-one",
+//     })).filter(r => r.fromTable && r.toTable),
+
+//     // 🔥 PRESERVE META TO FORCE RE-RENDER
+//     _meta: safe._meta || null,
+
+//     // 🔥 HARD REFRESH KEY (CRITICAL)
+//     __refreshKey: Date.now()
+//   };
+// }
+
+// // ===============================
+// // AI GENERATION (FINAL FIX)
+// // ===============================
+// // export async function generateSchemaFromPrompt(prompt) {
+// //   try {
+// //     const res = await fetch(`${API_BASE_URL}/generate-schema`, {
+// //       method: "POST",
+// //       headers: {
+// //         "Content-Type": "application/json",
+// //         "Cache-Control": "no-cache"
+// //       },
+// //       body: JSON.stringify({ prompt }),
+// //     });
+
+// //     if (!res.ok) {
+// //       const text = await res.text();
+// //       console.error("AI API Error:", text);
+// //       throw new Error(`AI server error (${res.status})`);
+// //     }
+
+// //     const data = await res.json();
+
+// //     // IMPORTANT: normalize AFTER receiving full response
+// //     return await res.json();
+// //     return normalizeSchema(data);
+
+// //   } catch (err) {
+// //     console.error("generateSchemaFromPrompt failed:", err);
+// //     throw err;
+// //   }
+// // }
+
+// // ===============================
+// // AI GENERATION (FIXED)
+// // ===============================
+// export async function generateSchemaFromPrompt(prompt) {
+//   try {
+//     const res = await fetch(`${API_BASE_URL}/generate-schema`, {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//         // Cache-Control is now whitelisted in your backend server.js
+//         "Cache-Control": "no-cache"
+//       },
+//       body: JSON.stringify({ prompt }),
+//     });
+
+//     // 1. Check if the network request failed (e.g., 404 or 500)
+//     if (!res.ok) {
+//       const errorText = await res.text(); // Read stream as text for error reporting
+//       console.error("AI API Error:", errorText);
+//       throw new Error(`AI server error (${res.status})`);
+//     }
+
+//     // 2. Read the JSON body EXACTLY ONCE
+//     const data = await res.json();
+
+//     // 3. Normalize the data and return it
+//     // Removed the "return await res.json()" line that was causing the crash
+//     return normalizeSchema(data);
+
+//   } catch (err) {
+//     console.error("generateSchemaFromPrompt failed:", err);
+//     throw err;
+//   }
+// }
+
+
+// // ===============================
+// // CODE GENERATORS (UNCHANGED)
+// // ===============================
+// function generatePrismaCode(schema) {
+//   let code = `datasource db {
+//   provider = "postgresql"
+//   url      = env("DATABASE_URL")
+// }
+
+// generator client {
+//   provider = "prisma-client-js"
+// }
+
+// `;
+
+//   schema.tables.forEach(table => {
+//     code += `model ${table.name} {\n`;
+//     table.columns.forEach(col => {
+//       let type = "String";
+//       const t = col.type.toLowerCase();
+//       if (t.includes("int")) type = "Int";
+//       else if (t.includes("bool")) type = "Boolean";
+//       else if (t.includes("float") || t.includes("decimal")) type = "Float";
+//       else if (t.includes("time") || t.includes("date")) type = "DateTime";
+
+//       code += `  ${col.name} ${type}`;
+//       if (col.pk) code += " @id @default(uuid())";
+//       if (col.unique && !col.pk) code += " @unique";
+//       code += "\n";
+//     });
+//     code += `}\n\n`;
+//   });
+
+//   return code;
+// }
+
+// function generateMongoCode(schema) {
+//   let code = `import mongoose from 'mongoose';\n\n`;
+
+//   schema.tables.forEach(table => {
+//     code += `const ${table.name}Schema = new mongoose.Schema({\n`;
+//     table.columns.forEach(col => {
+//       if (col.pk && (col.name === "id" || col.name === "_id")) return;
+
+//       let type = "String";
+//       const t = col.type.toLowerCase();
+//       if (t.includes("int") || t.includes("float") || t.includes("decimal")) type = "Number";
+//       else if (t.includes("bool")) type = "Boolean";
+//       else if (t.includes("date") || t.includes("time")) type = "Date";
+
+//       code += `  ${col.name}: { type: ${type}${col.unique ? ", unique: true" : ""}${!col.nullable ? ", required: true" : ""} },\n`;
+//     });
+
+//     code += `}, { timestamps: true });\n\n`;
+//     code += `export const ${table.name} = mongoose.models.${table.name} || mongoose.model('${table.name}', ${table.name}Schema);\n\n`;
+//   });
+
+//   return code;
+// }
+
+// function generateSQLCode(schema, dialect) {
+//   const lines = [];
+//   if (dialect === "postgres") {
+//     lines.push("CREATE EXTENSION IF NOT EXISTS pgcrypto;");
+//   }
+
+//   schema.tables.forEach((table) => {
+//     const colDefs = table.columns.map((col) => {
+//       let def = `  "${col.name}" ${col.type}`;
+//       if (col.pk) def += " PRIMARY KEY";
+//       if (col.unique && !col.pk) def += " UNIQUE";
+//       if (!col.nullable) def += " NOT NULL";
+//       return def;
+//     });
+
+//     lines.push(
+//       `CREATE TABLE IF NOT EXISTS "${table.name}" (\n${colDefs.join(",\n")}\n);`
+//     );
+//   });
+
+//   schema.relations.forEach((rel) => {
+//     lines.push(
+//       `ALTER TABLE "${rel.fromTable}"
+//   ADD CONSTRAINT "fk_${rel.fromTable}_${rel.fromColumn}"
+//   FOREIGN KEY ("${rel.fromColumn}")
+//   REFERENCES "${rel.toTable}" ("${rel.toColumn}");`
+//     );
+//   });
+
+//   return lines.join("\n\n");
+// }
+
+// // ===============================
+// // MAIN EXPORT
+// // ===============================
+// export function generateSQL(schemaInput, dialectInput = "postgres") {
+//   const schema = normalizeSchema(schemaInput);
+
+//   if (!schema.tables || schema.tables.length === 0) {
+//     return "-- No tables to generate.";
+//   }
+
+//   const dialect = dialectInput.toLowerCase();
+
+//   if (dialect === DIALECTS.prisma) return generatePrismaCode(schema);
+//   if (dialect === DIALECTS.mongodb) return generateMongoCode(schema);
+//   if (dialect === DIALECTS.mysql) return generateSQLCode(schema, "mysql");
+
+//   return generateSQLCode(schema, "postgres");
+// }
+
+
+
+
+
+
+
+
+
+
+
 // ===============================
 // DIALECTS
 // ===============================
@@ -1791,10 +2274,8 @@ const DIALECTS = {
 // ===============================
 // API CONFIG
 // ===============================
-// IMPORTANT:
-// - Use relative URL to avoid CORS
-// - Frontend → your backend → AI service
-const API_BASE_URL = "/api";
+// Ensure this matches your backend's actual running port (verified as 10000)
+const API_BASE_URL = "http://localhost:10000/api";
 
 // ===============================
 // UTILS
@@ -1808,93 +2289,89 @@ function toSafeString(input) {
 // ===============================
 // NORMALIZER
 // ===============================
+/**
+ * Normalizes the AI response into a format the ERD Canvas and SQL generators understand.
+ * This acts as a single source of truth for the schema state.
+ */
 export function normalizeSchema(schema) {
   const safe = schema && typeof schema === "object" ? schema : {};
+
   const tables = Array.isArray(safe.tables) ? safe.tables : [];
   const relations = Array.isArray(safe.relations) ? safe.relations : [];
 
-  const normTables = tables.map((t) => ({
-    name: toSafeString(t?.name),
-    columns: Array.isArray(t?.columns)
-      ? t.columns.map((c) => ({
-          name: toSafeString(c?.name),
-          type: toSafeString(c?.type) || "varchar(255)",
-          pk: !!c?.pk,
-          fk: !!c?.fk,
-          unique: !!c?.unique,
-          nullable: !!c?.nullable,
-        }))
-      : [],
-  }));
-
   return {
-    tables: normTables.filter((t) => t.name),
-    relations: relations
-      .map((r) => ({
-        fromTable: toSafeString(r?.fromTable),
-        fromColumn: toSafeString(r?.fromColumn),
-        toTable: toSafeString(r?.toTable),
-        toColumn: toSafeString(r?.toColumn),
-        type: toSafeString(r?.type) || "many-to-one",
-      }))
-      .filter((r) => r.fromTable && r.toTable),
+    tables: tables.map((t) => ({
+      name: toSafeString(t?.name),
+      columns: Array.isArray(t?.columns)
+        ? t.columns.map((c) => ({
+            name: toSafeString(c?.name),
+            type: toSafeString(c?.type) || "varchar(255)",
+            pk: !!c?.pk,
+            fk: !!c?.fk,
+            unique: !!c?.unique,
+            nullable: !!c?.nullable,
+          }))
+        : [],
+    })).filter(t => t.name),
+
+    relations: relations.map((r) => ({
+      fromTable: toSafeString(r?.fromTable),
+      fromColumn: toSafeString(r?.fromColumn),
+      toTable: toSafeString(r?.toTable),
+      toColumn: toSafeString(r?.toColumn),
+      type: toSafeString(r?.type) || "many-to-one",
+    })).filter(r => r.fromTable && r.toTable),
+
+    // Preserve metadata to assist React with state change detection
+    _meta: safe._meta || null,
+    __refreshKey: Date.now() 
   };
 }
 
 // ===============================
 // AI GENERATION (FIXED)
 // ===============================
+/**
+ * Communicates with the backend to generate a schema JSON based on a natural language prompt.
+ * Fixes the "body stream already read" error by consuming res.json() exactly once.
+ */
 export async function generateSchemaFromPrompt(prompt) {
   try {
     const res = await fetch(`${API_BASE_URL}/generate-schema`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache"
       },
       body: JSON.stringify({ prompt }),
     });
 
+    // 1. Check if the response is successful (Status 200-299)
     if (!res.ok) {
-      const text = await res.text();
-      console.error("AI API Error:", text);
-      throw new Error(`AI server error (${res.status})`);
+      // Consume as text for error logging to avoid locking the stream if we needed json
+      const errorText = await res.text(); 
+      console.error("AI API Error Response:", errorText);
+      throw new Error(`AI server error (${res.status}): ${errorText}`);
     }
 
-    let data = await res.json();
+    // 2. Consume the JSON body EXACTLY ONCE
+    const data = await res.json();
 
-    // Handle AI responses that return text instead of JSON
-    if (typeof data === "string") {
-      try {
-        const jsonMatch = data.match(/\{[\s\S]*\}/);
-        data = JSON.parse(jsonMatch ? jsonMatch[0] : data);
-      } catch (e) {
-        console.error("AI response parse failed", e);
-        throw new Error("Invalid AI response format");
-      }
-    }
-
+    // 3. Normalize the data before returning it to the Editor component
     return normalizeSchema(data);
 
   } catch (err) {
     console.error("generateSchemaFromPrompt failed:", err);
-    throw err; // Editor.jsx will trigger fallback
+    throw err;
   }
 }
 
 // ===============================
 // CODE GENERATORS
 // ===============================
+
 function generatePrismaCode(schema) {
-  let code = `datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
-generator client {
-  provider = "prisma-client-js"
-}
-
-`;
+  let code = `datasource db {\n  provider = "postgresql"\n  url      = env("DATABASE_URL")\n}\n\ngenerator client {\n  provider = "prisma-client-js"\n}\n\n`;
 
   schema.tables.forEach(table => {
     code += `model ${table.name} {\n`;
@@ -1913,7 +2390,6 @@ generator client {
     });
     code += `}\n\n`;
   });
-
   return code;
 }
 
@@ -1924,7 +2400,6 @@ function generateMongoCode(schema) {
     code += `const ${table.name}Schema = new mongoose.Schema({\n`;
     table.columns.forEach(col => {
       if (col.pk && (col.name === "id" || col.name === "_id")) return;
-
       let type = "String";
       const t = col.type.toLowerCase();
       if (t.includes("int") || t.includes("float") || t.includes("decimal")) type = "Number";
@@ -1933,11 +2408,8 @@ function generateMongoCode(schema) {
 
       code += `  ${col.name}: { type: ${type}${col.unique ? ", unique: true" : ""}${!col.nullable ? ", required: true" : ""} },\n`;
     });
-
-    code += `}, { timestamps: true });\n\n`;
-    code += `export const ${table.name} = mongoose.models.${table.name} || mongoose.model('${table.name}', ${table.name}Schema);\n\n`;
+    code += `}, { timestamps: true });\n\nexport const ${table.name} = mongoose.models.${table.name} || mongoose.model('${table.name}', ${table.name}Schema);\n\n`;
   });
-
   return code;
 }
 
@@ -1955,29 +2427,22 @@ function generateSQLCode(schema, dialect) {
       if (!col.nullable) def += " NOT NULL";
       return def;
     });
-
-    lines.push(
-      `CREATE TABLE IF NOT EXISTS "${table.name}" (\n${colDefs.join(",\n")}\n);`
-    );
+    lines.push(`CREATE TABLE IF NOT EXISTS "${table.name}" (\n${colDefs.join(",\n")}\n);`);
   });
 
   schema.relations.forEach((rel) => {
-    lines.push(
-      `ALTER TABLE "${rel.fromTable}"
-  ADD CONSTRAINT "fk_${rel.fromTable}_${rel.fromColumn}"
-  FOREIGN KEY ("${rel.fromColumn}")
-  REFERENCES "${rel.toTable}" ("${rel.toColumn}");`
-    );
+    lines.push(`ALTER TABLE "${rel.fromTable}"\n  ADD CONSTRAINT "fk_${rel.fromTable}_${rel.fromColumn}"\n  FOREIGN KEY ("${rel.fromColumn}") REFERENCES "${rel.toTable}" ("${rel.toColumn}");`);
   });
 
   return lines.join("\n\n");
 }
 
 // ===============================
-// MAIN EXPORT
+// MAIN EXPORTED CODE SWITCHER
 // ===============================
 export function generateSQL(schemaInput, dialectInput = "postgres") {
   const schema = normalizeSchema(schemaInput);
+
   if (!schema.tables || schema.tables.length === 0) {
     return "-- No tables to generate.";
   }

@@ -1255,10 +1255,20 @@ export default function ERDCanvas({ schema, onSchemaChange }) {
   const [relConfig, setRelConfig] = useState({ type: "many-to-one", fk: "" });
 
   // Sync internal state when AI generates a new schema
-  useEffect(() => {
-    setNodes(initialNodes);
-    setEdges(initialEdges);
-  }, [initialNodes, initialEdges]);
+  // useEffect(() => {
+  //   setNodes(initialNodes);
+  //   setEdges(initialEdges);
+  // }, [initialNodes, initialEdges]);
+  // Inside ERDCanvas.jsx
+useEffect(() => {
+  if (schema) {
+    const { nodes: newNodes, edges: newEdges } = schemaToReactFlow(schema);
+    setNodes(newNodes);
+    setEdges(newEdges);
+    
+    
+  }
+}, [schema]); // This MUST trigger when Editor.jsx calls setSchema
 
   const onNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
