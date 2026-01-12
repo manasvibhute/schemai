@@ -349,19 +349,14 @@
 
 
 
-
-
-
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './utils/authGuard';
 
-// Layouts
 import MarketingLayout from './layouts/MarketingLayout';
 import AppLayout from './layouts/AppLayout';
 
-// Pages
 import LandingPage from './pages/LandingPage';
 import Pricing from './pages/Pricing';
 import PublicShare from './pages/PublicShare';
@@ -369,7 +364,7 @@ import Login from './pages/Auth/Login';
 import Signup from './pages/Auth/Signup';
 import ForgotPassword from './pages/Auth/ForgotPassword';
 import Dashboard from './pages/Dashboard';
-import Editor from './pages/Editor/Editor'; // We will put the AI logic here
+import Editor from './pages/Editor/Editor'; 
 import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
 
@@ -412,5 +407,7 @@ function App() {
 }
 
 export default App;
+
+
 
 
