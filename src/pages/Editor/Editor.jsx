@@ -3015,29 +3015,34 @@ export default function Editor() {
 //   }
 // };
 
-   const onGenerate = async () => {
-  if (!prompt) return;
-  setLoading(true);
-  setError("");
-
-  // 1. CLEAR THE CURRENT STATE FIRST
-  // This removes the "Banking" diagram so the canvas is ready for new data
-  setSchema({ tables: [], relations: [] });
-
+  const onGenerate = async () => {
+      setLoading(true);
   try {
-    const result = await generateSchemaFromPrompt(prompt);
+    const response = await fetch("http://localhost:10000/api/generate-schema", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        prompt: prompt,
+        // We pass the thread_id if we have one to keep the agent's memory alive
+        thread_id: localStorage.getItem("chat_thread_id") || null 
+      }),
+    });
     
-    if (result && Array.isArray(result.tables) && result.tables.length > 0) {
-      // 2. SET THE NEW DETAILED SCHEMA
-      setSchema({ ...result }); 
-      console.log("✅ New Schema Loaded:", result);
-    } else {
-      throw new Error("AI generated an empty or insufficient schema.");
+    const data = await response.json();
+    console.log("🤖 Agent Response:", data);
+
+    // CRITICAL FIX: Access 'data.schema' instead of just 'data'
+    if (data.schema) {
+      setSchema(data.schema);
+      
+      // Save the thread_id so the agent remembers this conversation
+      if (data.thread_id) {
+        localStorage.setItem("chat_thread_id", data.thread_id);
+      }
     }
-  } catch (e) {
-    console.error("Generation Error:", e);
-    setError("AI generation failed. Check backend logs.");
-    // Only go back to fallback if there is a total connection failure
+
+  } catch (err) {
+    console.error("Frontend Error:", err);
   } finally {
     setLoading(false);
   }
