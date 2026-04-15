@@ -1,0 +1,312 @@
+/* 
+:root {
+
+  --color-bg-primary: #0a0510;
+  --color-violet: #7C3AED;
+  --color-pink: #D946EF;
+
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  
+
+  --shadow-glow: 0 0 40px rgba(124, 58, 237, 0.3);
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+
+.deep-space-bg {
+  background: var(--color-bg-primary);
+}
+
+.glow-violet {
+  box-shadow: var(--shadow-glow);
+}
+
+.glass-morphism {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.gradient-violet-pink {
+  background: linear-gradient(135deg, var(--color-violet) 0%, var(--color-pink) 100%);
+}
+
+.gradient-text-violet-pink {
+  background: linear-gradient(135deg, var(--color-violet) 0%, var(--color-pink) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 4s ease-in-out infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 6s ease infinite;
+}
+
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(124, 58, 237, 0.4);
+}
+
+
+.focus-ring-violet:focus {
+  outline: none;
+  ring: 2px solid var(--color-violet);
+  ring-offset: 2px;
+  ring-offset-color: var(--color-bg-primary);
+} */
+
+
+
+
+
+
+
+
+
+
+/* 
+Theme CSS Variables
+:root {
+
+  --color-bg-primary: #0a0510;
+  --color-violet: #7C3AED;
+  --color-pink: #D946EF;
+
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+
+  --shadow-glow: 0 0 40px rgba(124, 58, 237, 0.3);
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.deep-space-bg {
+  background: var(--color-bg-primary);
+}
+
+.glow-violet {
+  box-shadow: var(--shadow-glow);
+}
+
+.glass-morphism {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.gradient-violet-pink {
+  background: linear-gradient(135deg, var(--color-violet) 0%, var(--color-pink) 100%);
+}
+
+.gradient-text-violet-pink {
+  background: linear-gradient(135deg, var(--color-violet) 0%, var(--color-pink) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 4s ease-in-out infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 6s ease infinite;
+}
+
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(124, 58, 237, 0.4);
+}
+
+
+.focus-ring-violet:focus {
+  outline: none;
+  ring: 2px solid var(--color-violet);
+  ring-offset: 2px;
+  ring-offset-color: var(--color-bg-primary);
+} */
+
+
+
+
+
+
+
+
+
+
+
+/* Theme CSS Variables */
+:root {
+  /* Colors */
+  --color-bg-primary: #0a0510;
+  --color-violet: #7C3AED;
+  --color-pink: #D946EF;
+  
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  
+  /* Border Radius */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  
+  /* Shadows */
+  --shadow-glow: 0 0 40px rgba(124, 58, 237, 0.3);
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Custom Utility Classes */
+.deep-space-bg {
+  background: var(--color-bg-primary);
+}
+
+.glow-violet {
+  box-shadow: var(--shadow-glow);
+}
+
+.glass-morphism {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Gradient Utilities */
+.gradient-violet-pink {
+  background: linear-gradient(135deg, var(--color-violet) 0%, var(--color-pink) 100%);
+}
+
+.gradient-text-violet-pink {
+  background: linear-gradient(135deg, var(--color-violet) 0%, var(--color-pink) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Animation Utilities */
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 4s ease-in-out infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 6s ease infinite;
+}
+
+/* Hover Effects */
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(124, 58, 237, 0.4);
+}
+
+/* Focus States */
+.focus-ring-violet:focus {
+  outline: none;
+  ring: 2px solid var(--color-violet);
+  ring-offset: 2px;
+  ring-offset-color: var(--color-bg-primary);
+}
