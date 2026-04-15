@@ -718,73 +718,8 @@ const Dashboard = () => {
               >
                 <Trash2 size={16} />
               </button>
-            </div
-
-      {/* Empty State */}
-      {!loading && filteredSchemas.length === 0 && (
-        <GlassCard hover className="text-center py-12">
-          <Database className="w-16 h-16 mx-auto text-slate-400 mb-4" />
-          <h3 className="text-xl font-semibold text-white mb-2">No schemas yet</h3>
-          <p className="text-slate-400 mb-6">Create your first schema to get started</p>
-          <button
-            onClick={() => navigate('/editor')}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 text-white font-medium"
-          >
-            <Plus size={20} />
-            Create Schema
-          </button>
-        </GlassCard>
-      )}
-
-      {/* Schemas Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {filteredSchemas.map((schema) => (
-          <GlassCard key={schema._id} hover className="group">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-600/20 to-pink-600/20 flex items-center justify-center">
-                  <Database className="text-violet-400" size={24} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-white group-hover:text-violet-400">
-                    {schema.name}
-                  </h3>
-                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400">
-                    {schema.dialect}
-                  </span>
-                </div>
-              </div>
-              <MoreVertical className="text-slate-400 cursor-pointer hover:text-white" />
             </div>
 
-            <p className="text-slate-400 text-sm mb-4">
-              {schema.description || 'No description provided'}
-            </p>
-
-            <div className="flex items-center gap-4 text-sm text-slate-400 mb-4">
-              <div className="flex items-center gap-1">
-                <Database size={16} /> {schema.tables?.length || 0} tables
-              </div>
-              <div className="flex items-center gap-1">
-                <Calendar size={16} /> {new Date(schema.updatedAt).toLocaleDateString()}
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => navigate(`/editor/${schema._id}`)}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 text-white text-sm font-medium"
-              >
-                <Edit size={16} />
-                Open
-              </button>
-              <button
-                onClick={() => handleDeleteSchema(schema._id)}
-                className="flex items-center justify-center px-4 py-2 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-400 text-sm font-medium"
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
           </GlassCard>
         ))}
       </div>
@@ -793,8 +728,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-
-
-
-
-
