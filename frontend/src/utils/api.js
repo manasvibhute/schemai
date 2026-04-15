@@ -2021,7 +2021,7 @@
 // // src/utils/api.js
 
 // // Change the port from 5000 to 10000 to match your server output
-// const API_BASE_URL = "http://localhost:10000/api";
+// const API_BASE_URL = "https://schemai.onrender.com/api";
 
 // // ===============================
 // // UTILS
@@ -2277,9 +2277,11 @@ const DIALECTS = {
 // API CONFIG
 // ===============================
 const RAW_BACKEND_URL = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || "";
+
 const BACKEND_HOST = RAW_BACKEND_URL
   ? RAW_BACKEND_URL.replace(/\/+$/, "").replace(/\/api$/i, "")
-  : "http://localhost:10000";
+  : (typeof window !== "undefined" ? window.location.origin : "http://localhost:10000");
+
 const API_BASE_URL = `${BACKEND_HOST}/api`;
 
 // ===============================
