@@ -214,7 +214,6 @@ const Signup = () => {
               type="text"
               label="Full Name"
               icon={User}
-              placeholder="John Doe"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
