@@ -532,6 +532,8 @@ import dotenv from 'dotenv';
 import express from "express";
 import cors from "cors";
 import schemaRoutes from "./routes/schema.js";
+import databaseRoutes from "./routes/database.routes.js";
+import connectDB from "./config/mongodb.js";
 
 dotenv.config();
 const app = express();
@@ -539,7 +541,6 @@ const app = express();
 // --------------------------------------------------
 // DEBUG: API KEY VALIDATION
 // --------------------------------------------------
-// Ensure your .env file has GROQ_API_KEY
 if (!process.env.GROQ_API_KEY) {
   console.error("❌ CRITICAL ERROR: GROQ_API_KEY is missing from .env!");
 } else {
@@ -547,11 +548,18 @@ if (!process.env.GROQ_API_KEY) {
 }
 
 // --------------------------------------------------
+// CONNECT TO MONGODB
+// --------------------------------------------------
+connectDB().catch(err => {
+  console.warn('⚠️ MongoDB connection failed - continuing without database');
+});
+
+// --------------------------------------------------
 // 2. Middleware & CORS Configuration
 // --------------------------------------------------
 app.use(cors({
   origin: "https://schemai-nine.vercel.app",
-  methods: ["GET", "POST"],
+  methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
 app.options('*', cors());
@@ -571,8 +579,10 @@ app.get("/", (req, res) => {
 // --------------------------------------------------
 // 4. Routes
 // --------------------------------------------------
-// This connects the /api prefix to your schema generation logic
+// Schema generation routes
 app.use("/api", schemaRoutes);
+// Database routes for saving/fetching schemas
+app.use("/api/db", databaseRoutes);
 
 // --------------------------------------------------
 // 5. Global Error Handler
@@ -588,7 +598,6 @@ app.use((err, req, res, next) => {
 // --------------------------------------------------
 // 6. Start Server
 // --------------------------------------------------
-// Explicitly using Port 10000 to match your terminal output
 const PORT = process.env.PORT || 10000;
 
 const backendBaseUrl = process.env.BACKEND_URL
@@ -602,5 +611,6 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server listening on Port: ${PORT}`);
   console.log(`🌍 Backend URL: ${backendBaseUrl}`);
   console.log(`📡 API endpoint: ${backendBaseUrl}/api/generate-schema`);
+  console.log(`💾 Database endpoint: ${backendBaseUrl}/api/db/schemas`);
   console.log("------------------------------------------------");
 });

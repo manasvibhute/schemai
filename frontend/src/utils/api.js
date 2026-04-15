@@ -2458,3 +2458,84 @@ export function generateSQL(schemaInput, dialectInput = "postgres") {
 
   return generateSQLCode(schema, "postgres");
 }
+
+// ===============================
+// DATABASE OPERATIONS
+// ===============================
+export async function saveSchema(schemaData) {
+  try {
+    const payload = {
+      name: schemaData.name || "Untitled Schema",
+      description: schemaData.description || "",
+      tables: schemaData.tables || [],
+      relations: schemaData.relations || [],
+      dialect: schemaData.dialect || "postgres",
+      userId: schemaData.userId || "anonymous",
+    };
+
+    const res = await fetch(`${API_BASE_URL}/db/save-schema`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to save schema: ${res.statusText}`);
+    }
+
+    const data = await res.json();
+    return data.schema;
+  } catch (err) {
+    console.error("saveSchema failed:", err);
+    throw err;
+  }
+}
+
+export async function updateSchema(schemaId, schemaData) {
+  try {
+    const payload = {
+      name: schemaData.name || "Untitled Schema",
+      description: schemaData.description || "",
+      tables: schemaData.tables || [],
+      relations: schemaData.relations || [],
+      dialect: schemaData.dialect || "postgres",
+    };
+
+    const res = await fetch(`${API_BASE_URL}/db/schema/${schemaId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to update schema: ${res.statusText}`);
+    }
+
+    const data = await res.json();
+    return data.schema;
+  } catch (err) {
+    console.error("updateSchema failed:", err);
+    throw err;
+  }
+}
+
+export async function getSchemaById(schemaId) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/db/schema/${schemaId}`);
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch schema: ${res.statusText}`);
+    }
+
+    const data = await res.json();
+    return data.schema;
+  } catch (err) {
+    console.error("getSchemaById failed:", err);
+    throw err;
+  }
+}

@@ -473,7 +473,7 @@
 
 
 // src/pages/Dashboard.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus,
@@ -497,44 +497,74 @@ const Dashboard = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
+  const [schemas, setSchemas] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Mock data
-  const projects = [
-    {
-      id: 1,
-      name: 'E-commerce Platform',
-      description: 'Complete schema for online shopping platform with products, orders, and users',
-      tables: 12,
-      lastModified: '2 hours ago',
-      collaborators: 3,
-      status: 'active'
-    },
-    {
-      id: 2,
-      name: 'Social Media App',
-      description: 'User profiles, posts, comments, and messaging system',
-      tables: 8,
-      lastModified: '1 day ago',
-      collaborators: 2,
-      status: 'active'
-    },
-    {
-      id: 3,
-      name: 'Task Management',
-      description: 'Projects, tasks, subtasks, and team assignments',
-      tables: 6,
-      lastModified: '3 days ago',
-      collaborators: 1,
-      status: 'draft'
+  // Fetch schemas from database on component mount
+  useEffect(() => {
+    fetchSchemas();
+  }, []);
+
+  const fetchSchemas = async () => {
+    try {
+      setLoading(true);
+      const apiUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || "";
+      const backendHost = apiUrl
+        ? apiUrl.replace(/\/+$/, "").replace(/\/api$/i, "")
+        : window.location.origin;
+      
+      const response = await fetch(`${backendHost}/api/db/schemas`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch schemas: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setSchemas(data.schemas || []);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching schemas:', err);
+      setError('Failed to load schemas. They will be shown as you create them.');
+      setSchemas([]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const handleDeleteSchema = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this schema?')) return;
+
+    try {
+      const apiUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || "";
+      const backendHost = apiUrl
+        ? apiUrl.replace(/\/+$/, "").replace(/\/api$/i, "")
+        : window.location.origin;
+      
+      const response = await fetch(`${backendHost}/api/db/schema/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setSchemas(schemas.filter(s => s._id !== id));
+      }
+    } catch (err) {
+      console.error('Error deleting schema:', err);
+      alert('Failed to delete schema');
+    }
+  };
 
   const stats = [
-    { label: 'Total Schemas', value: '24', change: '+3 this month', color: 'violet' },
-    { label: 'Active Projects', value: '12', change: '+2 this week', color: 'pink' },
-    { label: 'Team Members', value: '8', change: '+1 new', color: 'violet' },
-    { label: 'Storage Used', value: '2.4 GB', change: '48% remaining', color: 'pink' }
+    { label: 'Total Schemas', value: schemas.length.toString(), change: 'stored locally', color: 'violet' },
+    { label: 'Active Projects', value: schemas.filter(s => !s.isArchived).length.toString(), change: 'in use', color: 'pink' },
+    { label: 'Dialects Used', value: [...new Set(schemas.map(s => s.dialect))].length.toString(), change: 'SQL types', color: 'violet' },
+    { label: 'Last Updated', value: schemas.length > 0 ? 'Just now' : 'Never', change: 'recent activity', color: 'pink' }
   ];
+
+  const filteredSchemas = schemas.filter(schema =>
+    schema.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (schema.description && schema.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   const getStatusClasses = (status) =>
     cn(
@@ -564,7 +594,6 @@ const Dashboard = () => {
           </p>
         </div>
 
-        {/* ✅ FIXED: New Schema */}
         <button
           onClick={() => navigate('/editor')}
           className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 text-white shadow-lg shadow-violet-500/50 transition-all"
@@ -588,6 +617,13 @@ const Dashboard = () => {
         ))}
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <GlassCard className="border border-red-500/30 bg-red-500/10">
+          <p className="text-red-400">{error}</p>
+        </GlassCard>
+      )}
+
       {/* Search */}
       <GlassCard>
         <div className="flex flex-col sm:flex-row gap-4">
@@ -610,10 +646,34 @@ const Dashboard = () => {
         </div>
       </GlassCard>
 
-      {/* Projects */}
+      {/* Loading State */}
+      {loading && (
+        <div className="text-center py-12">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-violet-500"></div>
+          <p className="text-slate-400 mt-4">Loading your schemas...</p>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && filteredSchemas.length === 0 && (
+        <GlassCard hover className="text-center py-12">
+          <Database className="w-16 h-16 mx-auto text-slate-400 mb-4" />
+          <h3 className="text-xl font-semibold text-white mb-2">No schemas yet</h3>
+          <p className="text-slate-400 mb-6">Create your first schema to get started</p>
+          <button
+            onClick={() => navigate('/editor')}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 text-white font-medium"
+          >
+            <Plus size={20} />
+            Create Schema
+          </button>
+        </GlassCard>
+      )}
+
+      {/* Schemas Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {projects.map((project) => (
-          <GlassCard key={project.id} hover className="group">
+        {filteredSchemas.map((schema) => (
+          <GlassCard key={schema._id} hover className="group">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-600/20 to-pink-600/20 flex items-center justify-center">
@@ -621,38 +681,110 @@ const Dashboard = () => {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-white group-hover:text-violet-400">
-                    {project.name}
+                    {schema.name}
                   </h3>
-                  <span className={getStatusClasses(project.status)}>
-                    {project.status}
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400">
+                    {schema.dialect}
                   </span>
                 </div>
               </div>
-              <MoreVertical className="text-slate-400" />
+              <MoreVertical className="text-slate-400 cursor-pointer hover:text-white" />
             </div>
 
-            <p className="text-slate-400 text-sm mb-4">{project.description}</p>
+            <p className="text-slate-400 text-sm mb-4">
+              {schema.description || 'No description provided'}
+            </p>
 
             <div className="flex items-center gap-4 text-sm text-slate-400 mb-4">
               <div className="flex items-center gap-1">
-                <Database size={16} /> {project.tables} tables
+                <Database size={16} /> {schema.tables?.length || 0} tables
               </div>
               <div className="flex items-center gap-1">
-                <Calendar size={16} /> {project.lastModified}
-              </div>
-              <div className="flex items-center gap-1">
-                <Users size={16} /> {project.collaborators}
+                <Calendar size={16} /> {new Date(schema.updatedAt).toLocaleDateString()}
               </div>
             </div>
 
-            {/* ✅ FIXED: Open */}
-            <button
-              onClick={() => navigate(`/editor/${project.id}`)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 text-white text-sm font-medium"
-            >
-              <Edit size={16} />
-              Open
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => navigate(`/editor/${schema._id}`)}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 text-white text-sm font-medium"
+              >
+                <Edit size={16} />
+                Open
+              </button>
+              <button
+                onClick={() => handleDeleteSchema(schema._id)}
+                className="flex items-center justify-center px-4 py-2 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-400 text-sm font-medium"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div
+
+      {/* Empty State */}
+      {!loading && filteredSchemas.length === 0 && (
+        <GlassCard hover className="text-center py-12">
+          <Database className="w-16 h-16 mx-auto text-slate-400 mb-4" />
+          <h3 className="text-xl font-semibold text-white mb-2">No schemas yet</h3>
+          <p className="text-slate-400 mb-6">Create your first schema to get started</p>
+          <button
+            onClick={() => navigate('/editor')}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 text-white font-medium"
+          >
+            <Plus size={20} />
+            Create Schema
+          </button>
+        </GlassCard>
+      )}
+
+      {/* Schemas Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {filteredSchemas.map((schema) => (
+          <GlassCard key={schema._id} hover className="group">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-600/20 to-pink-600/20 flex items-center justify-center">
+                  <Database className="text-violet-400" size={24} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white group-hover:text-violet-400">
+                    {schema.name}
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400">
+                    {schema.dialect}
+                  </span>
+                </div>
+              </div>
+              <MoreVertical className="text-slate-400 cursor-pointer hover:text-white" />
+            </div>
+
+            <p className="text-slate-400 text-sm mb-4">
+              {schema.description || 'No description provided'}
+            </p>
+
+            <div className="flex items-center gap-4 text-sm text-slate-400 mb-4">
+              <div className="flex items-center gap-1">
+                <Database size={16} /> {schema.tables?.length || 0} tables
+              </div>
+              <div className="flex items-center gap-1">
+                <Calendar size={16} /> {new Date(schema.updatedAt).toLocaleDateString()}
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => navigate(`/editor/${schema._id}`)}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 text-white text-sm font-medium"
+              >
+                <Edit size={16} />
+                Open
+              </button>
+              <button
+                onClick={() => handleDeleteSchema(schema._id)}
+                className="flex items-center justify-center px-4 py-2 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-400 text-sm font-medium"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
           </GlassCard>
         ))}
       </div>
