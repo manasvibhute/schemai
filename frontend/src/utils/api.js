@@ -2276,8 +2276,11 @@ const DIALECTS = {
 // ===============================
 // API CONFIG
 // ===============================
-// Ensure this matches your backend's actual running port (verified as 10000)
-const API_BASE_URL = "http://localhost:10000/api";
+const RAW_BACKEND_URL = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || "";
+const BACKEND_HOST = RAW_BACKEND_URL
+  ? RAW_BACKEND_URL.replace(/\/+$/, "").replace(/\/api$/i, "")
+  : "http://localhost:10000";
+const API_BASE_URL = `${BACKEND_HOST}/api`;
 
 // ===============================
 // UTILS
@@ -2337,30 +2340,26 @@ export function normalizeSchema(schema) {
  * Communicates with the backend to generate a schema JSON based on a natural language prompt.
  * Fixes the "body stream already read" error by consuming res.json() exactly once.
  */
-export async function generateSchemaFromPrompt(prompt) {
+export async function generateSchemaFromPrompt(prompt, options = {}) {
   try {
+    const payload = { prompt, ...options };
     const res = await fetch(`${API_BASE_URL}/generate-schema`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Cache-Control": "no-cache"
       },
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify(payload),
     });
 
-    // 1. Check if the response is successful (Status 200-299)
     if (!res.ok) {
-      // Consume as text for error logging to avoid locking the stream if we needed json
-      const errorText = await res.text(); 
+      const errorText = await res.text();
       console.error("AI API Error Response:", errorText);
       throw new Error(`AI server error (${res.status}): ${errorText}`);
     }
 
-    // 2. Consume the JSON body EXACTLY ONCE
     const data = await res.json();
-
-    // 3. Normalize the data before returning it to the Editor component
-    return normalizeSchema(data);
+    return normalizeSchema(data.schema || data);
 
   } catch (err) {
     console.error("generateSchemaFromPrompt failed:", err);
