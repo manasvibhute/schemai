@@ -153,9 +153,14 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+const groqApiKey = process.env.GROQ_API_KEY;
+if (!groqApiKey) {
+  console.warn("⚠️ GROQ_API_KEY is not set. Groq client will not be initialized.");
+}
+
+const groq = groqApiKey ? new Groq({
+  apiKey: groqApiKey,
+}) : null;
 
 /**
  * Generates a structured JSON database schema from a natural language prompt.
@@ -163,6 +168,10 @@ const groq = new Groq({
  * @returns {Object} - A normalized schema object with tables and relations
  */
 export async function generateSchemaAI(userPrompt) {
+  if (!groq) {
+    throw new Error("GROQ_API_KEY is missing. Please set GROQ_API_KEY in your backend .env file before starting the server.");
+  }
+
   try {
     const systemPrompt = `
       You are an expert Database Architect.
