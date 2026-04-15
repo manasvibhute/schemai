@@ -597,10 +597,16 @@ app.use((err, req, res, next) => {
 // Explicitly using Port 10000 to match your terminal output
 const PORT = process.env.PORT || 10000;
 
+const backendBaseUrl = process.env.BACKEND_URL
+  ? process.env.BACKEND_URL.replace(/\/$/, "")
+  : process.env.RENDER_EXTERNAL_HOSTNAME
+  ? `https://${process.env.RENDER_EXTERNAL_HOSTNAME}`
+  : `http://localhost:${PORT}`;
+
 app.listen(PORT, "0.0.0.0", () => {
   console.log("------------------------------------------------");
   console.log(`🚀 Server listening on Port: ${PORT}`);
-  console.log(`🌍 Backend URL: http://localhost:${PORT}`);
-  console.log(`📡 API endpoint: http://localhost:${PORT}/api/generate-schema`);
+  console.log(`🌍 Backend URL: ${backendBaseUrl}`);
+  console.log(`📡 API endpoint: ${backendBaseUrl}/api/generate-schema`);
   console.log("------------------------------------------------");
 });
