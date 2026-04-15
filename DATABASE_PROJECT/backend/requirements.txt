@@ -1,7 +1,0 @@
-fastapi
-uvicorn
-groq
-langgraph
-python-dotenv
-langgraph-checkpoint-sqlite  
-tavily-python
