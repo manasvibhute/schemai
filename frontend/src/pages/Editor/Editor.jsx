@@ -3031,18 +3031,22 @@ export default function Editor() {
     const data = await response.json();
     console.log("🤖 Agent Response:", data);
 
-    // CRITICAL FIX: Access 'data.schema' instead of just 'data'
-    if (data.schema) {
-      setSchema(data.schema);
-      
-      // Save the thread_id so the agent remembers this conversation
+    const newSchema = data.schema || data;
+
+    if (newSchema && Array.isArray(newSchema.tables) && newSchema.tables.length > 0) {
+      setSchema({ ...newSchema });
+
       if (data.thread_id) {
         localStorage.setItem("chat_thread_id", data.thread_id);
       }
+    } else {
+      console.warn("AI returned no tables or invalid schema. Falling back to current schema.", data);
+      setError("AI returned no valid schema. Please refine your prompt.");
     }
 
   } catch (err) {
     console.error("Frontend Error:", err);
+    setError("AI generation failed. Please try again.");
   } finally {
     setLoading(false);
   }

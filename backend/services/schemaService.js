@@ -153,14 +153,9 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const groqApiKey = process.env.GROQ_API_KEY;
-if (!groqApiKey) {
-  console.warn("⚠️ GROQ_API_KEY is not set. Groq client will not be initialized.");
-}
-
-const groq = groqApiKey ? new Groq({
-  apiKey: groqApiKey,
-}) : null;
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+});
 
 /**
  * Generates a structured JSON database schema from a natural language prompt.
@@ -168,34 +163,31 @@ const groq = groqApiKey ? new Groq({
  * @returns {Object} - A normalized schema object with tables and relations
  */
 export async function generateSchemaAI(userPrompt) {
-  if (!groq) {
-    throw new Error("GROQ_API_KEY is missing. Please set GROQ_API_KEY in your backend .env file before starting the server.");
-  }
-
   try {
     const systemPrompt = `
-      You are an expert Database Architect.
-      Your task is to convert a user prompt into a structured JSON database schema.
+      You are a Senior Database Architect. Your job is to convert a user prompt into a normalized, production-ready database schema.
       
-      CRITICAL RULES:
-      1. Always generate between 3 to 6 related tables to ensure a complete system.
-      2. Use primary keys (pk: true) and foreign keys (fk: true).
-      3. Define relationships in the 'relations' array.
-      4. Return ONLY valid JSON. No prose, no markdown formatting, no backticks.
+      IMPORTANT RULES:
+      1. Return ONLY a valid JSON object, with no markdown, no explanation, and no code fences.
+      2. Use snake_case for table and column names.
+      3. Include primary keys (pk: true) on every table and foreign keys (fk: true) for relationships.
+      4. Always fill the "relations" array with clear relationships.
+      5. Prefer concrete SQL types: uuid, integer, varchar(255), boolean, timestamp, date, text, float.
+      6. If the prompt describes a financial or banking system, include tables for customers, accounts, transactions, cards, branches, and account_types.
+      7. For any business domain, infer at least 5 related tables unless the prompt clearly demands fewer.
       
-      JSON STRUCTURE EXAMPLE:
+      JSON STRUCTURE REQUIRED:
       {
         "tables": [
           {
-            "name": "users",
+            "name": "string",
             "columns": [
-              { "name": "id", "type": "uuid", "pk": true },
-              { "name": "email", "type": "varchar(255)", "unique": true }
+              { "name": "string", "type": "string", "pk": boolean, "fk": boolean, "unique": boolean, "nullable": boolean }
             ]
           }
         ],
         "relations": [
-          { "fromTable": "orders", "fromColumn": "user_id", "toTable": "users", "toColumn": "id", "type": "many-to-one" }
+          { "fromTable": "string", "fromColumn": "string", "toTable": "string", "toColumn": "string", "type": "many-to-one" | "one-to-one" | "many-to-many" }
         ]
       }
     `;
@@ -203,15 +195,15 @@ export async function generateSchemaAI(userPrompt) {
     const completion = await groq.chat.completions.create({
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: `Generate a schema for: ${userPrompt}` }
+        { role: "user", content: `Generate a normalized database schema for: ${userPrompt}` }
       ],
-      model: "llama-3.3-70b-versatile", // Or your specific model ID
-      temperature: 0.2, // Low temperature for consistent JSON output
-      response_format: { type: "json_object" } // Forces JSON output
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.0,
+      response_format: { type: "json_object" }
     });
 
     const rawContent = completion.choices[0].message.content;
-    const parsedSchema = JSON.parse(rawContent);
+    const parsedSchema = typeof rawContent === "object" ? rawContent : JSON.parse(rawContent);
 
     console.log(`✅ AI generated ${parsedSchema.tables?.length || 0} tables.`);
     return parsedSchema;
