@@ -550,14 +550,8 @@ if (!process.env.GROQ_API_KEY) {
 // 2. Middleware & CORS Configuration
 // --------------------------------------------------
 app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "http://localhost:5174",                 // Standard Vite Port
-    "http://localhost:3000",                 // Fallback React Port
-    "https://schema-ai-frontend.onrender.com" // Production URL
-  ],
-  methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "Cache-Control", "Pragma"],
+  origin: "https://schemai-nine.vercel.app",
+  methods: ["GET", "POST"],
   credentials: true
 }));
 app.options('*', cors());
