@@ -169,7 +169,7 @@ export const AuthProvider = ({ children }) => {
       // Mock login
       const mockUser = {
         id: '1',
-        name: 'John Doe',
+        name: email.split('@')[0],
         email: email,
       };
       

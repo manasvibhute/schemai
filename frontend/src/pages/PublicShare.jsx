@@ -10,7 +10,7 @@ const PublicShare = () => {
     const schema = {
         id: 'abc123',
         name: 'E-commerce Platform',
-        author: 'John Doe',
+        author: 'Anonymous',
         lastUpdated: '2 days ago',
         description: 'Complete database schema for an online shopping platform with products, orders, and user management.',
         tables: 12,

@@ -5,10 +5,10 @@ import {GlassCard} from '../components/GlassCard';
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [formData, setFormData] = useState({
-    name: 'John Doe',
-    email: 'john@example.com',
-    company: 'Acme Inc.',
-    role: 'Lead Developer'
+    name: '',
+    email: '',
+    company: '',
+    role: ''
   });
 
   const tabs = [
@@ -293,7 +293,6 @@ const Settings = () => {
                 </div>
                 <div className="space-y-3">
                   {[
-                    { name: 'John Doe', email: 'john@example.com', role: 'Owner' },
                     { name: 'Jane Smith', email: 'jane@example.com', role: 'Admin' },
                     { name: 'Bob Johnson', email: 'bob@example.com', role: 'Member' }
                   ].map((member, index) => (
